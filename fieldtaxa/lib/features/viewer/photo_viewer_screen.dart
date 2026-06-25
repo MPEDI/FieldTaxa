@@ -60,7 +60,7 @@ class PhotoViewerScreen extends ConsumerWidget {
               child: Icon(Icons.location_pin,
                   color: AppColors.accentLight, size: 80),
             ),
-          // Close button
+          // Close button (top-right)
           Positioned(
             top: 54,
             right: 18,
@@ -75,6 +75,24 @@ class PhotoViewerScreen extends ConsumerWidget {
                 ),
                 child:
                     const Icon(Icons.close, color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+          // Delete button (top-left)
+          Positioned(
+            top: 54,
+            left: 18,
+            child: GestureDetector(
+              onTap: () => _confirmDelete(context, ref, item),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.delete_outline_rounded,
+                    color: Color(0xFFFF6B6B), size: 20),
               ),
             ),
           ),
@@ -256,6 +274,43 @@ class PhotoViewerScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDelete(
+      BuildContext context, WidgetRef ref, FieldItem item) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete observation?',
+            style: newsreaderStyle(18, ctx.appFg, weight: FontWeight.w600)),
+        content: Text(
+          'This will permanently delete the observation and all its sightings.',
+          style: jakartaStyle(13, ctx.appFg),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: jakartaStyle(13, ctx.appMuted)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.deleteColor),
+            child: Text('Delete',
+                style: jakartaStyle(13, Colors.white,
+                    weight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && context.mounted) {
+      await ref
+          .read(itemsProvider.notifier)
+          .deleteItem(item.id, filePath: item.filePath);
+      // Reload sightings in-memory state (DB already cascade-deleted them).
+      await ref.read(sightingsProvider.notifier).reload();
+      if (context.mounted) context.pop();
+    }
   }
 
   Future<void> _showSightingSheet(

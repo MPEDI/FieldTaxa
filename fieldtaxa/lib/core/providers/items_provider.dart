@@ -1,10 +1,26 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../db/database_helper.dart';
 import '../models/models.dart';
 
 const _uuid = Uuid();
+
+/// Copies [sourcePath] into the app's permanent photos directory.
+/// Returns the new persistent path, or null if sourcePath is null.
+Future<String?> _persistFile(String? sourcePath, String itemId) async {
+  if (sourcePath == null) return null;
+  final docsDir = await getApplicationDocumentsDirectory();
+  final photosDir = Directory(p.join(docsDir.path, 'fieldtaxa_photos'));
+  if (!photosDir.existsSync()) photosDir.createSync(recursive: true);
+  final ext = p.extension(sourcePath).isNotEmpty ? p.extension(sourcePath) : '.jpg';
+  final dest = p.join(photosDir.path, '$itemId$ext');
+  await File(sourcePath).copy(dest);
+  return dest;
+}
 
 class ItemsNotifier extends StateNotifier<List<FieldItem>> {
   ItemsNotifier() : super([]) {
@@ -27,9 +43,15 @@ class ItemsNotifier extends StateNotifier<List<FieldItem>> {
     bool isObsOnly = false,
     DateTime? capturedAt,
   }) async {
+    final id = _uuid.v4();
+    // Copy the file to a persistent location before saving the path to DB.
+    // image_picker returns paths inside the OS temp directory which can be
+    // cleared between sessions, causing photos to disappear on real devices.
+    final persistedPath = await _persistFile(filePath, id);
+
     final item = FieldItem(
-      id: _uuid.v4(),
-      filePath: filePath,
+      id: id,
+      filePath: persistedPath,
       type: type,
       source: source,
       capturedAt: capturedAt ?? DateTime.now(),
@@ -52,9 +74,19 @@ class ItemsNotifier extends StateNotifier<List<FieldItem>> {
     await _load();
   }
 
-  Future<void> deleteItem(String id) async {
+  /// Deletes the item from the database (sightings cascade via FK),
+  /// removes the associated media file if it exists, and reloads state.
+  Future<void> deleteItem(String id, {String? filePath}) async {
     final db = await DatabaseHelper.instance.database;
+    // Cascade delete of sightings is handled by the DB FK (foreign_keys ON).
     await db.delete('field_items', where: 'id = ?', whereArgs: [id]);
+    // Delete the media file from persistent storage.
+    if (filePath != null) {
+      try {
+        final f = File(filePath);
+        if (f.existsSync()) f.deleteSync();
+      } catch (_) {}
+    }
     await _load();
   }
 
@@ -110,6 +142,14 @@ class SightingsNotifier extends StateNotifier<List<Sighting>> {
     await db.insert('sightings', sighting.toMap());
     await _load();
   }
+
+  Future<void> deleteSighting(String sightingId) async {
+    final db = await DatabaseHelper.instance.database;
+    await db.delete('sightings', where: 'id = ?', whereArgs: [sightingId]);
+    await _load();
+  }
+
+  Future<void> reload() => _load();
 
   List<Sighting> forItem(String itemId) =>
       state.where((s) => s.itemId == itemId).toList();

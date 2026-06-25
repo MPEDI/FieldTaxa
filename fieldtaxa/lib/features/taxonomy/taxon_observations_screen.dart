@@ -186,7 +186,7 @@ class _Divider extends StatelessWidget {
   }
 }
 
-class _ObsRow extends StatelessWidget {
+class _ObsRow extends ConsumerWidget {
   final FieldItem item;
   final List<Sighting> sightings;
   final CoordSystem coordSystem;
@@ -198,7 +198,7 @@ class _ObsRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final label = item.lastTag;
     final dateStr = _fmtDate(item.capturedAt);
 
@@ -267,6 +267,21 @@ class _ObsRow extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Icon(Icons.chevron_right, color: context.appMuted, size: 18),
+                  const SizedBox(width: 4),
+                  // Delete item button
+                  GestureDetector(
+                    onTap: () => _confirmDeleteItem(context, ref),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: AppColors.deleteColor.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: Icon(Icons.delete_outline_rounded,
+                          size: 15, color: AppColors.deleteColor),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -279,11 +294,45 @@ class _ObsRow extends StatelessWidget {
     );
   }
 
+  Future<void> _confirmDeleteItem(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete observation?',
+            style: newsreaderStyle(18, ctx.appFg, weight: FontWeight.w600)),
+        content: Text(
+          'This will permanently delete the observation and all its sightings.',
+          style: jakartaStyle(13, ctx.appFg),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: jakartaStyle(13, ctx.appMuted)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.deleteColor),
+            child: Text('Delete',
+                style: jakartaStyle(13, Colors.white,
+                    weight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ref
+          .read(itemsProvider.notifier)
+          .deleteItem(item.id, filePath: item.filePath);
+      await ref.read(sightingsProvider.notifier).reload();
+    }
+  }
+
   String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 }
 
-class _SightingSubRow extends StatelessWidget {
+class _SightingSubRow extends ConsumerWidget {
   final Sighting sighting;
   final CoordSystem coordSystem;
 
@@ -291,7 +340,7 @@ class _SightingSubRow extends StatelessWidget {
       {required this.sighting, required this.coordSystem});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final dateStr =
         '${_fmtDate(sighting.observedAt)} ${sighting.observedAt.hour.toString().padLeft(2, '0')}:${sighting.observedAt.minute.toString().padLeft(2, '0')}';
     String? coordStr;
@@ -310,7 +359,7 @@ class _SightingSubRow extends StatelessWidget {
               context, sighting.lat!, sighting.lng!)
           : null,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(89, 6, 14, 6),
+        padding: const EdgeInsets.fromLTRB(72, 6, 10, 6),
         child: Row(
           children: [
             Icon(Icons.location_pin,
@@ -335,13 +384,60 @@ class _SightingSubRow extends StatelessWidget {
                 ],
               ),
             ),
-            if (sighting.lat != null)
+            if (sighting.lat != null) ...[
               Icon(Icons.open_in_new_rounded,
                   size: 13, color: context.appMuted),
+              const SizedBox(width: 8),
+            ],
+            // Delete sighting button
+            GestureDetector(
+              onTap: () => _deleteSighting(context, ref),
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: AppColors.deleteColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(Icons.close,
+                    size: 13, color: AppColors.deleteColor),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _deleteSighting(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete sighting?',
+            style: newsreaderStyle(18, ctx.appFg, weight: FontWeight.w600)),
+        content: Text(
+          'This sighting record will be permanently removed.',
+          style: jakartaStyle(13, ctx.appFg),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: jakartaStyle(13, ctx.appMuted)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.deleteColor),
+            child: Text('Delete',
+                style: jakartaStyle(13, Colors.white,
+                    weight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ref.read(sightingsProvider.notifier).deleteSighting(sighting.id);
+    }
   }
 
   String _fmtDate(DateTime d) =>
