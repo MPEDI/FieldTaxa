@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="1024" height="1024">
+  <title>FieldTaxa App Icon — A3 (Map grid + cladogram)</title>
+  <desc>
+    App icon for FieldTaxa by MPediTech.
+    Background: dark forest green gradient with coordinate grid, terrain, map pin.
+    Foreground: bifurcating cladogram (blue = fauna, amber = flora).
+    Use this SVG as the master source for all icon sizes.
+    Apply platform corner radius externally (iOS: continuous squircle; Android: 20% radius).
+  </desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1E3A2E"></stop>
+      <stop offset="100%" stop-color="#142818"></stop>
+    </linearGradient>
+  </defs>
+
+  
+  <rect width="60" height="60" rx="14" fill="url(#bg)"></rect>
+
+  
+  <path d="M0 38 Q15 32 22 36 Q30 40 40 34 Q50 28 60 33 L60 60 L0 60Z" fill="rgba(255,255,255,.07)"></path>
+  <path d="M0 45 Q12 40 25 44 Q38 48 60 42 L60 60 L0 60Z" fill="rgba(255,255,255,.05)"></path>
+
+  
+  <line x1="0" y1="20" x2="60" y2="20" stroke="rgba(255,255,255,.22)" stroke-width=".8"></line>
+  <line x1="0" y1="40" x2="60" y2="40" stroke="rgba(255,255,255,.22)" stroke-width=".8"></line>
+  <line x1="20" y1="0" x2="20" y2="60" stroke="rgba(255,255,255,.22)" stroke-width=".8"></line>
+  <line x1="40" y1="0" x2="40" y2="60" stroke="rgba(255,255,255,.22)" stroke-width=".8"></line>
+
+  
+  <path d="M0 30 Q20 26 30 32 Q44 40 60 34" stroke="rgba(255,255,255,.15)" stroke-width="1.5" fill="none" stroke-linecap="round"></path>
+
+  
+  <path d="M30 50 C30 50 21 38 21 31 a9 9 0 0 1 18 0 C39 38 30 50 30 50Z" fill="#A3C46C" opacity=".9"></path>
+  <circle cx="30" cy="31" r="4" fill="#ffffff" opacity=".9"></circle>
+
+  
+  <line x1="30" y1="48" x2="30" y2="34" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"></line>
+  
+  <line x1="30" y1="34" x2="16" y2="22" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"></line>
+  <line x1="30" y1="34" x2="44" y2="22" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"></line>
+  
+  <line x1="16" y1="22" x2="10" y2="13" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"></line>
+  <line x1="16" y1="22" x2="22" y2="13" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"></line>
+  <line x1="44" y1="22" x2="38" y2="13" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"></line>
+  <line x1="44" y1="22" x2="50" y2="13" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"></line>
+  
+  <circle cx="10" cy="13" r="3" fill="#7EBBF0"></circle>
+  <circle cx="22" cy="13" r="3" fill="#7EBBF0"></circle>
+  
+  <circle cx="38" cy="13" r="3" fill="#F0C84A"></circle>
+  <circle cx="50" cy="13" r="3" fill="#F0C84A"></circle>
+  
+  <circle cx="16" cy="22" r="2" fill="rgba(255,255,255,.4)"></circle>
+  <circle cx="44" cy="22" r="2" fill="rgba(255,255,255,.4)"></circle>
+  <circle cx="30" cy="34" r="2" fill="rgba(255,255,255,.4)"></circle>
+</svg>
