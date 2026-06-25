@@ -16,13 +16,14 @@
 6. [Photo Viewer](#6-photo-viewer)
 7. [Logging Additional Sightings](#7-logging-additional-sightings)
 8. [Editing Classification](#8-editing-classification)
-9. [Taxonomy Screen](#9-taxonomy-screen)
-10. [Taxon Observations](#10-taxon-observations)
-11. [Search](#11-search)
-12. [Map Overlay](#12-map-overlay)
-13. [Settings](#13-settings)
-14. [About](#14-about)
-15. [Data & Privacy](#15-data--privacy)
+9. [Deleting Observations and Sightings](#9-deleting-observations-and-sightings)
+10. [Taxonomy Screen](#10-taxonomy-screen)
+11. [Taxon Observations](#11-taxon-observations)
+12. [Search](#12-search)
+13. [Map Overlay](#13-map-overlay)
+14. [Settings](#14-settings)
+15. [About](#15-about)
+16. [Data & Privacy](#16-data--privacy)
 
 ---
 
@@ -205,7 +206,40 @@ You can always change an item's taxonomy tags after the initial classify step.
 
 ---
 
-## 9. Taxonomy Screen
+## 9. Deleting Observations and Sightings
+
+### Deleting an Observation (item + all its sightings)
+
+An observation can be deleted from two places:
+
+**From the Photo Viewer:**
+1. Open the observation by tapping its tile in the Gallery, Category, or Taxon Observations screen.
+2. Tap the **red trash icon** in the top-left corner of the viewer.
+3. Confirm the deletion in the dialog that appears.
+
+The observation, its media file, and all associated sightings are permanently removed.
+
+**From the Taxon Observations screen:**
+1. Navigate to **Taxonomy → [node name]** to open the Taxon Observations list.
+2. Tap the **small delete icon** (trash, red) at the right end of any observation card header.
+3. Confirm the deletion in the dialog.
+
+### Deleting a Single Sighting
+
+Individual sightings can be deleted from the **Taxon Observations** screen without removing the observation itself:
+
+1. Navigate to **Taxonomy → [node name]**.
+2. Locate the observation and find the sighting sub-row you want to remove.
+3. Tap the **× button** on the right side of the sighting row.
+4. Confirm the deletion.
+
+The observation and all other sightings remain unaffected.
+
+> **Note:** Deletion is permanent and cannot be undone.
+
+---
+
+## 10. Taxonomy Screen
 
 Tap the **Taxonomy** tab in the bottom navigation bar.
 
@@ -235,7 +269,7 @@ Tap the **trash** icon (red, right side of a row) to delete a category. A confir
 
 ---
 
-## 10. Taxon Observations
+## 11. Taxon Observations
 
 The Taxon Observations screen shows all items classified under a specific taxonomy node or any of its descendants.
 
@@ -276,7 +310,7 @@ Tap **Add observation (no photo)** at the top to create a GPS-only item tagged t
 
 ---
 
-## 11. Search
+## 12. Search
 
 Tap the **Search** tab in the bottom navigation bar.
 
@@ -313,7 +347,7 @@ When no search results are visible, up to 20 recent searches are listed below th
 
 ---
 
-## 12. Map Overlay
+## 13. Map Overlay
 
 The Map Overlay is a bottom sheet that shows the GPS position of an observation or sighting on a map.
 
@@ -337,7 +371,7 @@ Dismiss the overlay by swiping down or tapping the **✕** button.
 
 ---
 
-## 13. Settings
+## 14. Settings
 
 Tap the **Settings** tab in the bottom navigation bar.
 
@@ -383,7 +417,7 @@ Choose the map provider shown in the **Map Overlay**:
 
 ---
 
-## 14. About
+## 15. About
 
 From **Settings**, tap **About** at the bottom of the list.
 
@@ -396,7 +430,7 @@ Tap **www.mpeditech.com/en/fieldtaxa** to open the FieldTaxa page on the MPediTe
 
 ---
 
-## 15. Data & Privacy
+## 16. Data & Privacy
 
 - **Local storage only.** All your observations, taxonomy, and settings are stored on your device using a local SQLite database. No data is sent to any server.
 - **Location data.** GPS coordinates are stored locally alongside each observation or sighting. Location access is requested only when you tap a GPS toggle; the app never accesses location in the background.
