@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -230,7 +231,13 @@ class _ObsRow extends StatelessWidget {
                               child: Icon(Icons.location_pin,
                                   color: context.appMuted, size: 24),
                             )
-                          : Container(color: context.appSurface2),
+                          : (item.filePath != null &&
+                                  File(item.filePath!).existsSync()
+                              ? Image.file(File(item.filePath!),
+                                  fit: BoxFit.cover,
+                                  width: 58,
+                                  height: 58)
+                              : Container(color: context.appSurface2)),
                     ),
                   ),
                   const SizedBox(width: 12),

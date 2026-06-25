@@ -30,6 +30,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.dispose();
   }
 
+  void _restoreFromHistory(SearchHistoryEntry entry) {
+    // Match saved label strings back to node IDs
+    final flat = ref.read(taxonomyProvider.notifier).flatList;
+    final restoredIds = <String>{};
+    for (final label in entry.filterLabels) {
+      final match = flat.where((n) => n.name == label).toList();
+      if (match.isNotEmpty) restoredIds.add(match.first.id);
+    }
+    setState(() {
+      _selectedNodeIds
+        ..clear()
+        ..addAll(restoredIds);
+      _from = entry.dateFrom;
+      _to = entry.dateTo;
+    });
+    _run();
+  }
+
   void _run() {
     final allItems = ref.read(itemsProvider);
     final taxonomy = ref.read(taxonomyProvider.notifier);
@@ -104,10 +122,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     for (final child in node.children) {
       _collectAllNames(child, names);
     }
-  }
-
-  bool _isDescendant(List<TaxonomyNode> flat, String id, String ancestorId) {
-    return false; // simplified — full impl walks parent chain
   }
 
   @override
@@ -291,7 +305,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
               SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (_, i) => _HistoryRow(entry: history[i]),
+                  (_, i) => _HistoryRow(
+                    entry: history[i],
+                    onTap: () => _restoreFromHistory(history[i]),
+                  ),
                   childCount: history.length,
                 ),
               ),
@@ -519,7 +536,8 @@ class _CategoryRow extends StatelessWidget {
 
 class _HistoryRow extends StatelessWidget {
   final SearchHistoryEntry entry;
-  const _HistoryRow({required this.entry});
+  final VoidCallback onTap;
+  const _HistoryRow({required this.entry, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -527,7 +545,9 @@ class _HistoryRow extends StatelessWidget {
     final date =
         '${entry.searchedAt.day}.${entry.searchedAt.month}.${entry.searchedAt.year}';
 
-    return Padding(
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
       padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -565,6 +585,7 @@ class _HistoryRow extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/items_provider.dart';
 import '../../core/providers/taxonomy_provider.dart';
+
 import '../../core/theme/app_theme.dart';
 
 class TaxonomyScreen extends ConsumerWidget {
@@ -58,25 +59,28 @@ class _TaxonNodeRow extends ConsumerStatefulWidget {
 class _TaxonNodeRowState extends ConsumerState<_TaxonNodeRow> {
   bool _expanded = false;
 
-  int _obsCount() {
-    final items = ref.read(itemsProvider);
-    // Collect all descendant node names including self
-    final names = <String>{};
-    void walk(TaxonomyNode n) {
-      names.add(n.name);
-      for (final c in n.children) walk(c);
-    }
-    walk(widget.node);
-
-    return items.where((item) =>
-        item.tags.any((tagPath) => tagPath.any((t) => names.contains(t)))).length;
-  }
-
   @override
   Widget build(BuildContext context) {
     final node = widget.node;
     final depth = widget.depth;
-    final obsCount = _obsCount();
+
+    // Collect all descendant node names including self
+    final names = <String>{};
+    void gatherNames(TaxonomyNode n) {
+      names.add(n.name);
+      for (final c in n.children) gatherNames(c);
+    }
+    gatherNames(node);
+
+    // Count total sightings (reactive via ref.watch)
+    final items = ref.watch(itemsProvider);
+    final sightings = ref.watch(sightingsProvider);
+    final matchingIds = items
+        .where((i) => i.tags.any((tp) => tp.any((t) => names.contains(t))))
+        .map((i) => i.id)
+        .toSet();
+    final obsCount =
+        sightings.where((s) => matchingIds.contains(s.itemId)).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

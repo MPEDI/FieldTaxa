@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 
 class AboutScreen extends StatelessWidget {
@@ -74,7 +75,7 @@ class AboutScreen extends StatelessWidget {
                 Divider(height: 1, color: context.appLine),
                 _InfoRow(label: 'Developer', value: 'MPediTech'),
                 Divider(height: 1, color: context.appLine),
-                _InfoRow(label: 'Website', value: 'www.mpeditech.com'),
+                _WebsiteRow(url: 'https://www.mpeditech.com', label: 'www.mpeditech.com'),
               ],
             ),
           ),
@@ -120,6 +121,36 @@ class _InfoRow extends StatelessWidget {
               style: jakartaStyle(13, context.appFg,
                   weight: FontWeight.w600)),
         ],
+      ),
+    );
+  }
+}
+
+class _WebsiteRow extends StatelessWidget {
+  final String url;
+  final String label;
+  const _WebsiteRow({required this.url, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => launchUrl(Uri.parse(url)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        child: Row(
+          children: [
+            Text('Website',
+                style: jakartaStyle(13, context.appMuted,
+                    weight: FontWeight.w500)),
+            const Spacer(),
+            Text(label,
+                style: jakartaStyle(13, context.appPrimary,
+                    weight: FontWeight.w600)),
+            const SizedBox(width: 4),
+            Icon(Icons.open_in_new_rounded,
+                size: 13, color: context.appPrimary),
+          ],
+        ),
       ),
     );
   }
