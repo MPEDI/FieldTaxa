@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/items_provider.dart';
@@ -87,15 +86,18 @@ class _Header extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SvgPicture.asset(
-                  'assets/icon_a3.svg',
-                  height: 44,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 6),
                 Text('FieldTaxa',
                     style: newsreaderStyle(22, context.appFg,
                         weight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                Opacity(
+                  opacity: 0.75,
+                  child: Image.asset(
+                    'assets/MPeditechLogo.png',
+                    height: 16,
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ],
             ),
           ),

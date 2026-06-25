@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -39,8 +38,12 @@ class AboutScreen extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                SvgPicture.asset('assets/icon_a3.svg', height: 52),
-                const SizedBox(height: 12),
+                Image.asset(
+                  'assets/MPeditechLogo.png',
+                  height: 52,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 20),
                 Text('FieldTaxa',
                     style: newsreaderStyle(30, context.appFg,
                         weight: FontWeight.w600)),
