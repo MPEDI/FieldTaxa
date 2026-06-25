@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/items_provider.dart';
 import '../../core/providers/settings_provider.dart';
+import '../../core/providers/taxonomy_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/coords.dart';
 import '../../shared/widgets/map_overlay.dart';
@@ -90,29 +91,70 @@ class PhotoViewerScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Tag chips
-                    if (item.tags.isNotEmpty)
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: item.tags
-                            .expand((tp) => tp)
-                            .map((tag) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white
-                                        .withValues(alpha: 0.15),
-                                    borderRadius:
-                                        BorderRadius.circular(20),
-                                  ),
-                                  child: Text(tag,
-                                      style: jakartaStyle(
-                                          12, Colors.white,
-                                          weight: FontWeight.w600)),
-                                ))
-                            .toList(),
-                      ),
+                    // Tags row + edit button
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: item.tags.isEmpty
+                              ? Text('No classification',
+                                  style: jakartaStyle(
+                                      12, Colors.white54))
+                              : Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: item.tags
+                                      .expand((tp) => tp)
+                                      .map((tag) => Container(
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 5),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.15),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            child: Text(tag,
+                                                style: jakartaStyle(12,
+                                                    Colors.white,
+                                                    weight:
+                                                        FontWeight.w600)),
+                                          ))
+                                      .toList(),
+                                ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () =>
+                              _showReclassifySheet(context, ref, item),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                  color:
+                                      Colors.white.withValues(alpha: 0.2)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.edit_rounded,
+                                    color: Colors.white70, size: 13),
+                                const SizedBox(width: 5),
+                                Text('Edit',
+                                    style: jakartaStyle(
+                                        12, Colors.white70,
+                                        weight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     if (coordStr != null) ...[
                       const SizedBox(height: 10),
                       GestureDetector(
@@ -223,6 +265,16 @@ class PhotoViewerScreen extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _SightingSheet(item: item, ref: ref),
+    );
+  }
+
+  Future<void> _showReclassifySheet(
+      BuildContext context, WidgetRef ref, FieldItem item) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ReclassifySheet(item: item, ref: ref),
     );
   }
 }
@@ -381,6 +433,397 @@ class _SightingSheetState extends State<_SightingSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Reclassify sheet ────────────────────────────────────────────────────────
+
+class _ReclassifySheet extends ConsumerStatefulWidget {
+  final FieldItem item;
+  final WidgetRef ref;
+  const _ReclassifySheet({required this.item, required this.ref});
+
+  @override
+  ConsumerState<_ReclassifySheet> createState() => _ReclassifySheetState();
+}
+
+class _ReclassifySheetState extends ConsumerState<_ReclassifySheet> {
+  late List<List<String>> _tags;
+  bool _browseMode = true;
+  final _searchCtrl = TextEditingController();
+  TaxonomyNode? _drillParent;
+
+  @override
+  void initState() {
+    super.initState();
+    // Deep-copy existing tags so we can mutate without touching the original
+    _tags = widget.item.tags.map((tp) => List<String>.from(tp)).toList();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _addTag(List<String> path) {
+    if (!_tags.any((t) => t.join('/') == path.join('/'))) {
+      setState(() => _tags.add(path));
+    }
+  }
+
+  void _removeTag(int idx) => setState(() => _tags.removeAt(idx));
+
+  Future<void> _save() async {
+    await widget.ref
+        .read(itemsProvider.notifier)
+        .updateTags(widget.item.id, _tags);
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tree = ref.watch(taxonomyProvider);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.appSurface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle + header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('Edit classification',
+                      style: newsreaderStyle(19, context.appFg,
+                          weight: FontWeight.w600)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel',
+                      style: jakartaStyle(13, context.appMuted)),
+                ),
+                const SizedBox(width: 4),
+                FilledButton(
+                  onPressed: _save,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: context.appPrimary,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                  ),
+                  child: Text('Save',
+                      style: jakartaStyle(13, Colors.white,
+                          weight: FontWeight.w700)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Current tag chips
+          if (_tags.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _tags.asMap().entries.map((e) {
+                  final label = e.value.last;
+                  return Container(
+                    padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
+                    decoration: BoxDecoration(
+                      color: context.appTint,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(label,
+                            style: jakartaStyle(12, context.appPrimary,
+                                weight: FontWeight.w600)),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => _removeTag(e.key),
+                          child: Icon(Icons.close,
+                              size: 14, color: context.appPrimary),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Text('No classification — add one below',
+                  style: jakartaStyle(12, context.appMuted)),
+            ),
+          const SizedBox(height: 12),
+          // Mode toggle
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Container(
+              decoration: BoxDecoration(
+                color: context.appSurface2,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Expanded(child: _ModeTab(
+                    label: 'Browse tree',
+                    active: _browseMode,
+                    onTap: () => setState(() {
+                      _browseMode = true;
+                      _drillParent = null;
+                    }),
+                  )),
+                  Expanded(child: _ModeTab(
+                    label: 'Find',
+                    active: !_browseMode,
+                    onTap: () => setState(() => _browseMode = false),
+                  )),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Taxonomy picker — constrained height
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.35,
+            ),
+            child: _browseMode
+                ? _BrowsePanel(
+                    tree: tree,
+                    drillParent: _drillParent,
+                    onAdd: _addTag,
+                    onDrill: (n) => setState(() => _drillParent = n),
+                    onBack: () => setState(() => _drillParent = null),
+                    getPath: (id) => ref
+                        .read(taxonomyProvider.notifier)
+                        .pathForId(id),
+                  )
+                : _FindPanel(
+                    tree: tree,
+                    ctrl: _searchCtrl,
+                    onAdd: _addTag,
+                    getPath: (id) => ref
+                        .read(taxonomyProvider.notifier)
+                        .pathForId(id),
+                    onChanged: () => setState(() {}),
+                  ),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModeTab extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _ModeTab({required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: active ? context.appSurface : Colors.transparent,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Center(
+          child: Text(label,
+              style: jakartaStyle(
+                  13,
+                  active ? context.appPrimary : context.appMuted,
+                  weight: active ? FontWeight.w700 : FontWeight.w500)),
+        ),
+      ),
+    );
+  }
+}
+
+class _BrowsePanel extends StatelessWidget {
+  final List<TaxonomyNode> tree;
+  final TaxonomyNode? drillParent;
+  final ValueChanged<List<String>> onAdd;
+  final ValueChanged<TaxonomyNode> onDrill;
+  final VoidCallback onBack;
+  final List<String> Function(String) getPath;
+
+  const _BrowsePanel({
+    required this.tree,
+    required this.drillParent,
+    required this.onAdd,
+    required this.onDrill,
+    required this.onBack,
+    required this.getPath,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final nodes = drillParent != null ? drillParent!.children : tree;
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      children: [
+        if (drillParent != null)
+          GestureDetector(
+            onTap: onBack,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Icon(Icons.arrow_back_ios_rounded,
+                      size: 14, color: context.appPrimary),
+                  Text('Back',
+                      style: jakartaStyle(13, context.appPrimary,
+                          weight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          ),
+        ...nodes.map((n) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                children: [
+                  _AddBtn(onTap: () => onAdd(getPath(n.id)), context: context),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(n.name,
+                        style: jakartaStyle(13.5, context.appFg,
+                            weight: FontWeight.w500)),
+                  ),
+                  if (n.children.isNotEmpty)
+                    InkWell(
+                      onTap: () => onDrill(n),
+                      child: Icon(Icons.chevron_right,
+                          color: context.appMuted, size: 20),
+                    ),
+                ],
+              ),
+            )),
+      ],
+    );
+  }
+}
+
+class _FindPanel extends StatelessWidget {
+  final List<TaxonomyNode> tree;
+  final TextEditingController ctrl;
+  final ValueChanged<List<String>> onAdd;
+  final List<String> Function(String) getPath;
+  final VoidCallback onChanged;
+
+  const _FindPanel({
+    required this.tree,
+    required this.ctrl,
+    required this.onAdd,
+    required this.getPath,
+    required this.onChanged,
+  });
+
+  List<TaxonomyNode> _flat() {
+    final result = <TaxonomyNode>[];
+    void walk(TaxonomyNode n) {
+      result.add(n);
+      for (final c in n.children) walk(c);
+    }
+    for (final r in tree) walk(r);
+    return result;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filter = ctrl.text.toLowerCase();
+    final nodes = _flat()
+        .where((n) => filter.isEmpty || n.name.toLowerCase().contains(filter))
+        .toList();
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          child: TextField(
+            controller: ctrl,
+            onChanged: (_) => onChanged(),
+            decoration: InputDecoration(
+              hintText: 'Search taxonomy…',
+              hintStyle: jakartaStyle(13, context.appMuted),
+              prefixIcon:
+                  Icon(Icons.search, color: context.appMuted, size: 20),
+              filled: true,
+              fillColor: context.appSurface2,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 10),
+            ),
+            style: jakartaStyle(13, context.appFg),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            itemCount: nodes.length,
+            itemBuilder: (_, i) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                children: [
+                  _AddBtn(
+                      onTap: () => onAdd(getPath(nodes[i].id)),
+                      context: context),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(nodes[i].name,
+                        style: jakartaStyle(13.5, context.appFg,
+                            weight: FontWeight.w500)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddBtn extends StatelessWidget {
+  final VoidCallback onTap;
+  final BuildContext context;
+  const _AddBtn({required this.onTap, required this.context});
+
+  @override
+  Widget build(BuildContext _) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 32,
+        height: 34,
+        decoration: BoxDecoration(
+          color: context.appTint,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(Icons.add, size: 16, color: context.appPrimary),
       ),
     );
   }

@@ -128,22 +128,25 @@ List<TaxonomyNode> _defaultTaxonomy() {
       TaxonomyNode(id: id, name: name, parentId: parentId, sortOrder: order++);
 
   return [
-    n('animals', 'Animals', null),
-    n('insects', 'Insects', 'animals'),
-    n('terrestrial', 'Terrestrial', 'insects'),
-    n('aquatic', 'Aquatic', 'insects'),
-    n('ephemeroptera', 'Ephemeroptera', 'aquatic'),
-    n('baetidae', 'Baetidae', 'ephemeroptera'),
-    n('baetis', 'Baetis', 'baetidae'),
-    n('birds', 'Birds', 'animals'),
-    n('seed_feeding', 'Seed-feeding', 'birds'),
-    n('raptors', 'Raptors', 'birds'),
-    n('plants', 'Plants', null),
-    n('trees', 'Trees', 'plants'),
-    n('mountain_flowers', 'Mountain flowers', 'plants'),
-    n('springs', 'Springs', null),
-    n('holocrene', 'Holocrene', 'springs'),
-    n('rheocrene', 'Rheocrene', 'springs'),
-    n('limnocrene', 'Limnocrene', 'springs'),
+    // Animalia
+    n('animalia', 'Animalia', null),
+    n('insecta', 'Insecta', 'animalia'),
+    n('coleoptera', 'Coleoptera', 'insecta'),
+    n('diptera', 'Diptera', 'insecta'),
+    n('ephemeroptera', 'Ephemeroptera', 'insecta'),
+    n('aves', 'Aves', 'animalia'),
+    n('falconiformes', 'Falconiformes', 'aves'),
+    n('passeriformes', 'Passeriformes', 'aves'),
+    n('amphibia', 'Amphibia', 'animalia'),
+    n('mammalia', 'Mammalia', 'animalia'),
+    // Plantae
+    n('plantae', 'Plantae', null),
+    n('pteridophyta', 'Pteridophyta', 'plantae'),
+    n('gymnospermae', 'Gymnospermae', 'plantae'),
+    n('angiospermae', 'Angiospermae', 'plantae'),
+    n('monocotyledonae', 'Monocotyledonae', 'angiospermae'),
+    n('dicotyledonae', 'Dicotyledonae', 'angiospermae'),
+    // Unclassified
+    n('incertae_sedis', 'Incertae sedis', null),
   ];
 }
