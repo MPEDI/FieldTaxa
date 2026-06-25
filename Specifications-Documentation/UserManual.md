@@ -392,7 +392,7 @@ The About screen shows:
 - App version, build number, and release date
 - Developer name and website link
 
-Tap **www.mpeditech.com** to open the MPediTech website in your browser.
+Tap **www.mpeditech.com/en/fieldtaxa** to open the FieldTaxa page on the MPediTech website in your browser.
 
 ---
 

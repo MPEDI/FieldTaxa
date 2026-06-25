@@ -75,7 +75,7 @@ class AboutScreen extends StatelessWidget {
                 Divider(height: 1, color: context.appLine),
                 _InfoRow(label: 'Developer', value: 'MPediTech'),
                 Divider(height: 1, color: context.appLine),
-                _WebsiteRow(url: 'https://www.mpeditech.com', label: 'www.mpeditech.com'),
+                _WebsiteRow(url: 'https://www.mpeditech.com/en/fieldtaxa', label: 'www.mpeditech.com/en/fieldtaxa'),
               ],
             ),
           ),
