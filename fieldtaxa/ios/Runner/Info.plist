@@ -2,12 +2,20 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>FieldTaxa needs camera access to capture field observations.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>FieldTaxa needs photo library access to import and save observation photos.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>FieldTaxa saves observation photos to your photo library.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>FieldTaxa records GPS coordinates for your observations.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Fieldtaxa</string>
+	<string>FieldTaxa</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
