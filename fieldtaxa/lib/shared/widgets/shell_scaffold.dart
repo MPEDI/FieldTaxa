@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/theme/app_theme.dart';
+
+const _uuid = Uuid();
 
 class ShellScaffold extends StatelessWidget {
   final Widget child;
@@ -20,9 +24,135 @@ class ShellScaffold extends StatelessWidget {
     if (loc.startsWith('/search')) return 1;
     if (loc.startsWith('/taxonomy')) return 3;
     if (loc.startsWith('/settings')) return 4;
-    return 0; // gallery + category
+    return 0;
   }
 }
+
+// ─── Camera capture sheet ─────────────────────────────────────────────────────
+
+Future<void> _showCaptureSheet(BuildContext context) async {
+  final router = GoRouter.of(context);
+
+  final choice = await showModalBottomSheet<({bool video, bool fromGallery})>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (_) => const _CaptureChoiceSheet(),
+  );
+  if (choice == null) return;
+
+  final picker = ImagePicker();
+  final XFile? file;
+  if (choice.video) {
+    file = choice.fromGallery
+        ? await picker.pickVideo(source: ImageSource.gallery)
+        : await picker.pickVideo(source: ImageSource.camera);
+  } else {
+    file = choice.fromGallery
+        ? await picker.pickImage(source: ImageSource.gallery)
+        : await picker.pickImage(source: ImageSource.camera);
+  }
+
+  if (file != null) {
+    router.push('/classify/${_uuid.v4()}', extra: {
+      'filePath': file.path,
+      'tags': <List<String>>[],
+    });
+  }
+}
+
+class _CaptureChoiceSheet extends StatelessWidget {
+  const _CaptureChoiceSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.appSurface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.appLine,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _CaptureOption(
+              icon: Icons.camera_alt_rounded,
+              label: 'Take Photo',
+              onTap: () => Navigator.pop(
+                  context, (video: false, fromGallery: false)),
+            ),
+            _CaptureOption(
+              icon: Icons.photo_library_outlined,
+              label: 'Choose from Library',
+              onTap: () => Navigator.pop(
+                  context, (video: false, fromGallery: true)),
+            ),
+            _CaptureOption(
+              icon: Icons.videocam_rounded,
+              label: 'Record Video',
+              onTap: () => Navigator.pop(
+                  context, (video: true, fromGallery: false)),
+            ),
+            _CaptureOption(
+              icon: Icons.video_library_outlined,
+              label: 'Choose Video',
+              onTap: () => Navigator.pop(
+                  context, (video: true, fromGallery: true)),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CaptureOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _CaptureOption(
+      {required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: context.appTint,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: context.appPrimary, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Text(label,
+                style: jakartaStyle(15, context.appFg,
+                    weight: FontWeight.w500)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Bottom nav bar ───────────────────────────────────────────────────────────
 
 class _BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -37,8 +167,8 @@ class _BottomNavBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: chrome,
-        border: Border(
-            top: BorderSide(color: context.appLine, width: 0.5)),
+        border:
+            Border(top: BorderSide(color: context.appLine, width: 0.5)),
       ),
       child: SafeArea(
         top: false,
@@ -62,11 +192,11 @@ class _BottomNavBar extends StatelessWidget {
                 primary: primary,
                 muted: muted,
               ),
-              // Camera FAB
+              // Camera FAB — opens choice sheet immediately
               Expanded(
                 child: Center(
                   child: GestureDetector(
-                    onTap: () => context.push('/capture'),
+                    onTap: () => _showCaptureSheet(context),
                     child: Container(
                       width: 54,
                       height: 54,

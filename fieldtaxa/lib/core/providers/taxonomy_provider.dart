@@ -91,6 +91,49 @@ class TaxonomyNotifier extends StateNotifier<List<TaxonomyNode>> {
     }
   }
 
+  /// Ensures every name in [names] exists in the taxonomy tree (creating missing
+  /// nodes under the correct parent) and returns the names list for use as a tag path.
+  Future<List<String>> ensurePath(List<String> names) async {
+    if (names.isEmpty) return [];
+    final db = await DatabaseHelper.instance.database;
+    final rows = await db.query('taxonomy_nodes');
+    final flat = rows.map(TaxonomyNode.fromMap).toList();
+
+    String? parentId;
+    bool changed = false;
+
+    for (final name in names) {
+      // Case-insensitive search for an existing node under the current parent
+      TaxonomyNode? existing;
+      for (final n in flat) {
+        if (n.parentId == parentId &&
+            n.name.toLowerCase() == name.toLowerCase()) {
+          existing = n;
+          break;
+        }
+      }
+
+      if (existing != null) {
+        parentId = existing.id;
+      } else {
+        final newId = _uuid.v4();
+        final node = TaxonomyNode(
+          id: newId,
+          name: name,
+          parentId: parentId,
+          sortOrder: DateTime.now().millisecondsSinceEpoch,
+        );
+        await db.insert('taxonomy_nodes', node.toMap());
+        flat.add(node);
+        parentId = newId;
+        changed = true;
+      }
+    }
+
+    if (changed) await _load();
+    return names;
+  }
+
   List<TaxonomyNode> get flatList {
     final result = <TaxonomyNode>[];
     void walk(List<TaxonomyNode> nodes) {

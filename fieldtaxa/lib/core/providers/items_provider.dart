@@ -74,6 +74,17 @@ class ItemsNotifier extends StateNotifier<List<FieldItem>> {
     await _load();
   }
 
+  Future<void> updateCoords(String id, double? lat, double? lng) async {
+    final db = await DatabaseHelper.instance.database;
+    await db.update(
+      'field_items',
+      {'lat': lat, 'lng': lng},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    await _load();
+  }
+
   /// Deletes the item from the database (sightings cascade via FK),
   /// removes the associated media file if it exists, and reloads state.
   Future<void> deleteItem(String id, {String? filePath}) async {

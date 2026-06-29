@@ -2,7 +2,7 @@ name: fieldtaxa
 description: "FieldTaxa — Field taxonomy observation app for iOS and Android."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.11.5
@@ -36,6 +36,9 @@ dependencies:
 
   # Location
   geolocator: ^13.0.4
+
+  # Network
+  http: ^1.2.2
 
   # Utilities
   url_launcher: ^6.3.1

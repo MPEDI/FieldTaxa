@@ -173,35 +173,88 @@ class PhotoViewerScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    if (coordStr != null) ...[
-                      const SizedBox(height: 10),
-                      GestureDetector(
-                        onTap: () => MapOverlaySheet.show(
-                            context, item.lat!, item.lng!),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.location_pin,
-                                color: Color(0xFFA8D87A), size: 16),
-                            const SizedBox(width: 6),
-                            Text(
-                              coordStr,
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 12,
-                                color: Colors.white
-                                    .withValues(alpha: 0.9),
-                                fontWeight: FontWeight.w600,
+                    // Coordinate row (tap = map, edit button = sheet)
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        if (coordStr != null)
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => MapOverlaySheet.show(
+                                  context, item.lat!, item.lng!),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.location_pin,
+                                      color: Color(0xFFA8D87A), size: 16),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      coordStr,
+                                      style: TextStyle(
+                                        fontFamily: 'monospace',
+                                        fontSize: 12,
+                                        color: Colors.white
+                                            .withValues(alpha: 0.9),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(Icons.open_in_new_rounded,
+                                      color: Colors.white
+                                          .withValues(alpha: 0.6),
+                                      size: 14),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Icon(Icons.open_in_new_rounded,
-                                color:
-                                    Colors.white.withValues(alpha: 0.6),
-                                size: 14),
-                          ],
+                          )
+                        else
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Icon(Icons.location_off_rounded,
+                                    color:
+                                        Colors.white.withValues(alpha: 0.4),
+                                    size: 14),
+                                const SizedBox(width: 6),
+                                Text('No position',
+                                    style: jakartaStyle(
+                                        12,
+                                        Colors.white
+                                            .withValues(alpha: 0.4))),
+                              ],
+                            ),
+                          ),
+                        // Edit position button — always visible
+                        GestureDetector(
+                          onTap: () =>
+                              _showEditPositionSheet(context, ref, item),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                  color:
+                                      Colors.white.withValues(alpha: 0.2)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.edit_location_alt_rounded,
+                                    color: Colors.white70, size: 13),
+                                const SizedBox(width: 5),
+                                Text('Position',
+                                    style: jakartaStyle(
+                                        12, Colors.white70,
+                                        weight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                     // Camera roll banner
                     if (item.source == StorageSource.roll) ...[
                       const SizedBox(height: 8),
@@ -330,6 +383,16 @@ class PhotoViewerScreen extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _ReclassifySheet(item: item, ref: ref),
+    );
+  }
+
+  Future<void> _showEditPositionSheet(
+      BuildContext context, WidgetRef ref, FieldItem item) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditPositionSheet(item: item, ref: ref),
     );
   }
 }
@@ -880,6 +943,268 @@ class _AddBtn extends StatelessWidget {
         ),
         child: Icon(Icons.add, size: 16, color: context.appPrimary),
       ),
+    );
+  }
+}
+
+// ─── Edit position sheet ──────────────────────────────────────────────────────
+
+class _EditPositionSheet extends StatefulWidget {
+  final FieldItem item;
+  final WidgetRef ref;
+  const _EditPositionSheet({required this.item, required this.ref});
+
+  @override
+  State<_EditPositionSheet> createState() => _EditPositionSheetState();
+}
+
+class _EditPositionSheetState extends State<_EditPositionSheet> {
+  late double? _lat;
+  late double? _lng;
+  late final TextEditingController _coord1Ctrl;
+  late final TextEditingController _coord2Ctrl;
+  bool _fetching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _lat = widget.item.lat;
+    _lng = widget.item.lng;
+    _coord1Ctrl = TextEditingController();
+    _coord2Ctrl = TextEditingController();
+    _fillControllers();
+  }
+
+  @override
+  void dispose() {
+    _coord1Ctrl.dispose();
+    _coord2Ctrl.dispose();
+    super.dispose();
+  }
+
+  CoordSystem get _coordSystem =>
+      widget.ref.read(settingsProvider).coordSystem;
+
+  void _fillControllers() {
+    if (_lat == null || _lng == null) {
+      _coord1Ctrl.clear();
+      _coord2Ctrl.clear();
+      return;
+    }
+    if (_coordSystem == CoordSystem.lv95) {
+      final lv = wgsToLV95(_lat!, _lng!);
+      _coord1Ctrl.text = lv['E']!.toString();
+      _coord2Ctrl.text = lv['N']!.toString();
+    } else {
+      _coord1Ctrl.text = _lat!.toStringAsFixed(6);
+      _coord2Ctrl.text = _lng!.toStringAsFixed(6);
+    }
+  }
+
+  void _onCoordChanged() {
+    final raw1 = _coord1Ctrl.text.trim().replaceAll("'", "");
+    final raw2 = _coord2Ctrl.text.trim().replaceAll("'", "");
+    final v1 = double.tryParse(raw1.replaceAll(',', '.'));
+    final v2 = double.tryParse(raw2.replaceAll(',', '.'));
+    if (v1 != null && v2 != null) {
+      if (_coordSystem == CoordSystem.lv95) {
+        final wgs = lv95ToWgs(v1.round(), v2.round());
+        _lat = wgs['lat'];
+        _lng = wgs['lng'];
+      } else {
+        _lat = v1;
+        _lng = v2;
+      }
+    } else {
+      _lat = null;
+      _lng = null;
+    }
+  }
+
+  Future<void> _fetchGps() async {
+    setState(() => _fetching = true);
+    try {
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        perm = await Geolocator.requestPermission();
+      }
+      final pos = await Geolocator.getCurrentPosition();
+      if (!mounted) return;
+      _lat = pos.latitude;
+      _lng = pos.longitude;
+      _fillControllers();
+    } catch (_) {
+      // GPS unavailable — leave fields as-is
+    } finally {
+      if (mounted) setState(() => _fetching = false);
+    }
+  }
+
+  Future<void> _save() async {
+    _onCoordChanged(); // ensure internal state matches fields
+    await widget.ref
+        .read(itemsProvider.notifier)
+        .updateCoords(widget.item.id, _lat, _lng);
+    if (mounted) Navigator.pop(context);
+  }
+
+  void _clearPosition() {
+    _coord1Ctrl.clear();
+    _coord2Ctrl.clear();
+    _lat = null;
+    _lng = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLv95 = _coordSystem == CoordSystem.lv95;
+    final label1 = isLv95 ? 'E (LV95)' : 'Latitude';
+    final label2 = isLv95 ? 'N (LV95)' : 'Longitude';
+
+    return Padding(
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.appSurface,
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 20, 18, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: context.appLine,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Header
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Edit position',
+                      style: newsreaderStyle(20, context.appFg,
+                          weight: FontWeight.w600)),
+                ),
+                // Fetch GPS button
+                OutlinedButton.icon(
+                  onPressed: _fetching ? null : _fetchGps,
+                  icon: _fetching
+                      ? SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: context.appPrimary),
+                        )
+                      : Icon(Icons.my_location_rounded,
+                          size: 16, color: context.appPrimary),
+                  label: Text('Fetch GPS',
+                      style: jakartaStyle(12, context.appPrimary,
+                          weight: FontWeight.w600)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: context.appPrimary),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            // Coordinate fields
+            Row(
+              children: [
+                Expanded(
+                  child: _CoordInput(
+                    label: label1,
+                    ctrl: _coord1Ctrl,
+                    onChanged: _onCoordChanged,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _CoordInput(
+                    label: label2,
+                    ctrl: _coord2Ctrl,
+                    onChanged: _onCoordChanged,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Clear link
+            GestureDetector(
+              onTap: () => setState(_clearPosition),
+              child: Text('Clear position',
+                  style: jakartaStyle(12, context.appMuted)
+                      .copyWith(decoration: TextDecoration.underline)),
+            ),
+            const SizedBox(height: 20),
+            // Save button
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _save,
+                style: FilledButton.styleFrom(
+                  backgroundColor: context.appPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text('Save position',
+                    style: jakartaStyle(14, Colors.white,
+                        weight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CoordInput extends StatelessWidget {
+  final String label;
+  final TextEditingController ctrl;
+  final VoidCallback onChanged;
+
+  const _CoordInput(
+      {required this.label,
+      required this.ctrl,
+      required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: ctrl,
+      onChanged: (_) => onChanged(),
+      keyboardType: const TextInputType.numberWithOptions(
+          decimal: true, signed: true),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: jakartaStyle(11, context.appMuted),
+        filled: true,
+        fillColor: context.appSurface2,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      ),
+      style: jakartaStyle(13, context.appFg),
     );
   }
 }

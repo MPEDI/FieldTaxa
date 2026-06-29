@@ -15,12 +15,15 @@ class GalleryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(itemsProvider);
     final grouped = _group(items);
+    // Count only items that are visible in the gallery (have a category).
+    final visibleCount =
+        grouped.values.fold(0, (sum, list) => sum + list.length);
 
     return Scaffold(
       backgroundColor: context.appBg,
       body: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: _Header(total: items.length)),
+          SliverToBoxAdapter(child: _Header(total: visibleCount)),
           if (items.isEmpty)
             SliverFillRemaining(
               child: Center(

@@ -97,25 +97,16 @@ Tapping "See all →" opens a full-screen 3-column grid of all items in that cat
 
 ## 4. Capturing a Photo or Video
 
-Tap the **camera FAB** (the large green circle button) in the bottom navigation bar to open the Capture screen.
+Tap the **camera FAB** (the large green circle button) in the bottom navigation bar. A sheet slides up with four options:
 
-### Taking a Photo
+| Option | Action |
+|---|---|
+| **Take Photo** | Opens the system camera for a still photo |
+| **Choose from Library** | Opens the photo library picker |
+| **Record Video** | Opens the system camera in video mode |
+| **Choose Video** | Opens the video library picker |
 
-1. Choose **Photo** or **Video** with the toggle at the bottom.
-2. Tap the shutter button (large white circle) to take the shot.
-3. The app will immediately navigate to the **Classify** screen.
-
-### Importing from the Camera Roll
-
-1. On the Capture screen, tap the **photo library icon** (bottom-left) or the **"Import from camera roll"** text button.
-2. Select an image from your library.
-3. The app will navigate to the **Classify** screen with the selected image.
-
-> **Tip:** You can also import multiple images, but only the first selected image is processed in a single classify flow. Repeat the import for each additional image.
-
-### Close Without Capturing
-
-Tap the **✕** button (top-left) to return to the Gallery without creating any observation.
+Tap the option you need. The system camera or picker opens immediately; after capturing or selecting, the app navigates automatically to the **Classify** screen.
 
 ---
 
@@ -127,7 +118,19 @@ The Classify screen appears after every capture or import. Here you assign taxon
 
 The image you captured or imported is shown as an 84×84 dp thumbnail on the left. For GPS-only observations, a map-pin placeholder is shown.
 
-### Adding Tags
+### Searching Species Online (GBIF)
+
+A **Search species online (GBIF)** field is shown above the Browse / Find tabs. Type at least 3 characters of a species name; after a short pause the app queries the [GBIF](https://www.gbif.org) biodiversity database and shows matching species with their taxonomy breadcrumb.
+
+Tap any result to:
+1. Automatically create any missing taxonomy nodes (Kingdom → Phylum → Class → Order → Family → Genus → Species) in your local taxonomy tree.
+2. Add the full taxonomy path as a tag on the observation.
+
+This works even for species not yet in your local tree — the entire hierarchy is inserted automatically.
+
+> An internet connection is required for GBIF look-ups. The field has no effect offline.
+
+### Adding Tags Manually
 
 Tags represent the taxonomy paths that describe your observation. A single item can have multiple tags (e.g. if you are unsure about the exact classification).
 
@@ -143,11 +146,15 @@ Tags represent the taxonomy paths that describe your observation. A single item 
 
 **Removing a tag:** Tap the **✕** on any tag chip at the top of the screen.
 
-### Recording a GPS Position
+### GPS Position
 
-Tap the **GPS location** toggle row. If location permission has been granted, the current GPS position is recorded and shown in the selected coordinate format (GPS or Swiss LV95). Toggle it off to remove the location from this observation.
+When the Classify screen opens, the app automatically acquires your current GPS position. Two editable coordinate fields appear showing the position in the format selected in Settings (GPS or Swiss LV95).
 
-> GPS is optional. Observations without a location are fully supported.
+- **Edit manually**: Tap either field and type a value to override the GPS position. In LV95 mode the fields are labelled **E** and **N**; in GPS mode they are **Latitude** and **Longitude**.
+- **Re-fetch**: Tap the **crosshair icon** (to the left of the toggle) to replace the current values with a fresh GPS reading.
+- **Disable**: Tap the toggle to turn GPS off entirely and save the observation without coordinates.
+
+> GPS is always recorded automatically. The editable fields let you correct the position when needed (e.g. if you are indoors or want to enter an exact reference point).
 
 ### Saving
 
@@ -165,11 +172,27 @@ Tap any photo tile to open the full-screen Photo Viewer.
 
 - **The photo** fills the screen (pinch to zoom, swipe to pan)
 - **Tag chips** at the bottom show the taxonomy paths assigned to this item
-- **Coordinate row** (if GPS was recorded): tap it to open the **Map Overlay**
+- **Coordinate row**: shows the recorded position (or "No position" if none). Tap the coordinate text to open the **Map Overlay**.
+- **Position button** (next to the coordinate row): tap **Position** to open the Edit Position sheet (see §6.1)
 - **Camera roll banner** (if the item was imported from the camera roll)
 - **Log sighting button**: tap to log a new sighting for this item (see §7)
 - **Edit button** (top-right of the tags row): tap to edit the classification (see §8)
 - **✕ button** (top-right): close the viewer and return to the previous screen
+
+### 6.1 Editing the Position
+
+Tap the **Position** button at any time to correct or add a GPS position to an observation.
+
+The **Edit position** sheet shows two editable fields with the current coordinates in your preferred format (E/N for Swiss LV95, or Latitude/Longitude for GPS).
+
+| Control | Action |
+|---|---|
+| **E / N** or **Lat / Lng** fields | Type a value directly to set or correct the position |
+| **Fetch GPS** | Replaces both fields with your current device location |
+| **Clear position** | Removes all coordinates from the observation |
+| **Save position** | Persists the values and closes the sheet |
+
+The coordinate row in the viewer updates immediately after saving.
 
 ---
 

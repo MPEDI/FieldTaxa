@@ -30,6 +30,24 @@ String formatGps(double lat, double lng) {
   return '${lat.abs().toStringAsFixed(4)}° $latDir  ${lng.abs().toStringAsFixed(4)}° $lngDir';
 }
 
+/// Swisstopo inverse approximation: LV95 (E, N) → WGS84 (lat, lng).
+Map<String, double> lv95ToWgs(int e, int n) {
+  final y = (e - 2600000) / 1000000.0;
+  final x = (n - 1200000) / 1000000.0;
+  final lambda = 2.6779094
+      + 4.728982 * y
+      + 0.791484 * y * x
+      + 0.1306 * y * x * x
+      - 0.0436 * y * y * y;
+  final phi = 16.9023892
+      + 3.238272 * x
+      - 0.270978 * y * y
+      - 0.002528 * x * x
+      - 0.0447 * y * y * x
+      - 0.014 * x * x * x;
+  return {'lat': phi * 100 / 36, 'lng': lambda * 100 / 36};
+}
+
 ({int x, int y}) latLngToTile(double lat, double lng, int zoom) {
   final n = math.pow(2, zoom);
   final x = ((lng + 180) / 360 * n).floor();
