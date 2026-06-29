@@ -223,9 +223,14 @@ You can always change an item's taxonomy tags after the initial classify step.
 
 1. Open the **Photo Viewer** for the item.
 2. Tap the **Edit** button (top-right of the tag chips row).
-3. The **Edit classification** sheet opens with the same Browse tree / Find interface as the Classify screen.
-4. Add tags using the **+** buttons, remove tags by tapping the **✕** on each chip.
+3. The **Edit classification** sheet slides up. It contains:
+   - All current tag chips (tap **✕** on any chip to remove it)
+   - A **Search species online (GBIF)** field — type at least 3 characters to look up species online and auto-populate the full taxonomy path as a tag (same as the Classify screen)
+   - **Browse tree / Find** tabs for selecting from your local taxonomy tree
+4. Add tags using the **+** buttons in Browse or Find mode, or via GBIF search.
 5. Tap **Save** to apply the changes, or **Cancel** to discard.
+
+The sheet is scrollable and opens at full height so the taxonomy tree is fully accessible.
 
 ---
 

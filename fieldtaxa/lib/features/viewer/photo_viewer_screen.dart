@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/models/models.dart';
+import '../../core/services/gbif_service.dart';
 import '../../core/providers/items_provider.dart';
 import '../../core/providers/settings_provider.dart';
 import '../../core/providers/taxonomy_provider.dart';
@@ -381,8 +383,15 @@ class PhotoViewerScreen extends ConsumerWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ReclassifySheet(item: item, ref: ref),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.5,
+        maxChildSize: 0.97,
+        builder: (ctx, scrollCtrl) =>
+            _ReclassifySheet(item: item, ref: ref, scrollCtrl: scrollCtrl),
+      ),
     );
   }
 
@@ -561,7 +570,9 @@ class _SightingSheetState extends State<_SightingSheet> {
 class _ReclassifySheet extends ConsumerStatefulWidget {
   final FieldItem item;
   final WidgetRef ref;
-  const _ReclassifySheet({required this.item, required this.ref});
+  final ScrollController scrollCtrl;
+  const _ReclassifySheet(
+      {required this.item, required this.ref, required this.scrollCtrl});
 
   @override
   ConsumerState<_ReclassifySheet> createState() => _ReclassifySheetState();
@@ -571,18 +582,22 @@ class _ReclassifySheetState extends ConsumerState<_ReclassifySheet> {
   late List<List<String>> _tags;
   bool _browseMode = true;
   final _searchCtrl = TextEditingController();
+  final _speciesCtrl = TextEditingController();
   TaxonomyNode? _drillParent;
+  List<GbifSuggestion> _gbifSuggestions = [];
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    // Deep-copy existing tags so we can mutate without touching the original
     _tags = widget.item.tags.map((tp) => List<String>.from(tp)).toList();
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _speciesCtrl.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -601,6 +616,29 @@ class _ReclassifySheetState extends ConsumerState<_ReclassifySheet> {
     if (mounted) Navigator.pop(context);
   }
 
+  void _onSpeciesChanged(String value) {
+    _debounce?.cancel();
+    if (value.trim().length < 3) {
+      if (_gbifSuggestions.isNotEmpty) {
+        setState(() => _gbifSuggestions = []);
+      }
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 450), () async {
+      final results = await GbifService.suggest(value);
+      if (mounted) setState(() => _gbifSuggestions = results);
+    });
+  }
+
+  Future<void> _selectSpecies(GbifSuggestion suggestion) async {
+    final path = await ref
+        .read(taxonomyProvider.notifier)
+        .ensurePath(suggestion.path);
+    _addTag(path);
+    _speciesCtrl.clear();
+    setState(() => _gbifSuggestions = []);
+  }
+
   @override
   Widget build(BuildContext context) {
     final tree = ref.watch(taxonomyProvider);
@@ -610,139 +648,221 @@ class _ReclassifySheetState extends ConsumerState<_ReclassifySheet> {
         color: context.appSurface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
       ),
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle + header
+          // ── Handle + header ────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: Text('Edit classification',
-                      style: newsreaderStyle(19, context.appFg,
-                          weight: FontWeight.w600)),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel',
-                      style: jakartaStyle(13, context.appMuted)),
-                ),
-                const SizedBox(width: 4),
-                FilledButton(
-                  onPressed: _save,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: context.appPrimary,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: context.appLine,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                  child: Text('Save',
-                      style: jakartaStyle(13, Colors.white,
-                          weight: FontWeight.w700)),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('Edit classification',
+                          style: newsreaderStyle(19, context.appFg,
+                              weight: FontWeight.w600)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Cancel',
+                          style: jakartaStyle(13, context.appMuted)),
+                    ),
+                    const SizedBox(width: 4),
+                    FilledButton(
+                      onPressed: _save,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: context.appPrimary,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
+                      ),
+                      child: Text('Save',
+                          style: jakartaStyle(13, Colors.white,
+                              weight: FontWeight.w700)),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          // Current tag chips
-          if (_tags.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: _tags.asMap().entries.map((e) {
-                  final label = e.value.last;
-                  return Container(
-                    padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
-                    decoration: BoxDecoration(
-                      color: context.appTint,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(label,
-                            style: jakartaStyle(12, context.appPrimary,
-                                weight: FontWeight.w600)),
-                        const SizedBox(width: 4),
-                        GestureDetector(
-                          onTap: () => _removeTag(e.key),
-                          child: Icon(Icons.close,
-                              size: 14, color: context.appPrimary),
+          // ── Scrollable body ────────────────────────────────────────
+          Expanded(
+            child: ListView(
+              controller: widget.scrollCtrl,
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 32),
+              children: [
+                // Current tag chips
+                if (_tags.isNotEmpty)
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: _tags.asMap().entries.map((e) {
+                      final label = e.value.last;
+                      return Container(
+                        padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
+                        decoration: BoxDecoration(
+                          color: context.appTint,
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Text('No classification — add one below',
-                  style: jakartaStyle(12, context.appMuted)),
-            ),
-          const SizedBox(height: 12),
-          // Mode toggle
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Container(
-              decoration: BoxDecoration(
-                color: context.appSurface2,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  Expanded(child: _ModeTab(
-                    label: 'Browse tree',
-                    active: _browseMode,
-                    onTap: () => setState(() {
-                      _browseMode = true;
-                      _drillParent = null;
-                    }),
-                  )),
-                  Expanded(child: _ModeTab(
-                    label: 'Find',
-                    active: !_browseMode,
-                    onTap: () => setState(() => _browseMode = false),
-                  )),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Taxonomy picker — constrained height
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.35,
-            ),
-            child: _browseMode
-                ? _BrowsePanel(
-                    tree: tree,
-                    drillParent: _drillParent,
-                    onAdd: _addTag,
-                    onDrill: (n) => setState(() => _drillParent = n),
-                    onBack: () => setState(() => _drillParent = null),
-                    getPath: (id) => ref
-                        .read(taxonomyProvider.notifier)
-                        .pathForId(id),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(label,
+                                style: jakartaStyle(12, context.appPrimary,
+                                    weight: FontWeight.w600)),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () => _removeTag(e.key),
+                              child: Icon(Icons.close,
+                                  size: 14, color: context.appPrimary),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
                   )
-                : _FindPanel(
-                    tree: tree,
-                    ctrl: _searchCtrl,
-                    onAdd: _addTag,
-                    getPath: (id) => ref
-                        .read(taxonomyProvider.notifier)
-                        .pathForId(id),
-                    onChanged: () => setState(() {}),
+                else
+                  Text('No classification — add one below',
+                      style: jakartaStyle(12, context.appMuted)),
+                const SizedBox(height: 14),
+
+                // GBIF species search
+                TextField(
+                  controller: _speciesCtrl,
+                  onChanged: _onSpeciesChanged,
+                  decoration: InputDecoration(
+                    hintText: 'Search species online (GBIF)…',
+                    hintStyle: jakartaStyle(13, context.appMuted),
+                    prefixIcon: Icon(Icons.science_outlined,
+                        color: context.appMuted, size: 20),
+                    filled: true,
+                    fillColor: context.appSurface2,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
                   ),
+                  style: jakartaStyle(13, context.appFg),
+                ),
+                if (_gbifSuggestions.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: context.appSurface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: context.appLine),
+                    ),
+                    child: Column(
+                      children: _gbifSuggestions
+                          .map((s) => InkWell(
+                                onTap: () => _selectSpecies(s),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 10),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(s.canonicalName,
+                                                style: jakartaStyle(13,
+                                                    context.appFg,
+                                                    weight:
+                                                        FontWeight.w600)),
+                                            if (s.path.length > 1)
+                                              Text(
+                                                s.path
+                                                    .take(s.path.length - 1)
+                                                    .join(' › '),
+                                                style: jakartaStyle(
+                                                    11, context.appMuted),
+                                                overflow:
+                                                    TextOverflow.ellipsis,
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(Icons.add,
+                                          size: 16,
+                                          color: context.appPrimary),
+                                    ],
+                                  ),
+                                ),
+                              ))
+                          .toList(),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+
+                // Browse / Find toggle
+                Container(
+                  decoration: BoxDecoration(
+                    color: context.appSurface2,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                          child: _ModeTab(
+                        label: 'Browse tree',
+                        active: _browseMode,
+                        onTap: () => setState(() {
+                          _browseMode = true;
+                          _drillParent = null;
+                        }),
+                      )),
+                      Expanded(
+                          child: _ModeTab(
+                        label: 'Find',
+                        active: !_browseMode,
+                        onTap: () => setState(() => _browseMode = false),
+                      )),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Taxonomy picker — not height-constrained; scrolls with the list
+                _browseMode
+                    ? _BrowsePanel(
+                        tree: tree,
+                        drillParent: _drillParent,
+                        onAdd: _addTag,
+                        onDrill: (n) => setState(() => _drillParent = n),
+                        onBack: () => setState(() => _drillParent = null),
+                        getPath: (id) => ref
+                            .read(taxonomyProvider.notifier)
+                            .pathForId(id),
+                      )
+                    : _FindPanel(
+                        tree: tree,
+                        ctrl: _searchCtrl,
+                        onAdd: _addTag,
+                        getPath: (id) => ref
+                            .read(taxonomyProvider.notifier)
+                            .pathForId(id),
+                        onChanged: () => setState(() {}),
+                      ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
         ],
       ),
     );
