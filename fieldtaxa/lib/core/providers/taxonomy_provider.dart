@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../db/database_helper.dart';
@@ -79,6 +80,77 @@ class TaxonomyNotifier extends StateNotifier<List<TaxonomyNode>> {
     }
     await batch.commit(noResult: true);
     await _load();
+  }
+
+  /// Moves a node (and its whole subtree) under [newParentId] (null = root).
+  /// All item tag paths passing through the node are rewritten to the new
+  /// path so existing observations stay correctly classified.
+  /// Returns false if the move is invalid (into itself or a descendant).
+  Future<bool> moveNode(String id, String? newParentId) async {
+    if (id == newParentId) return false;
+    final db = await DatabaseHelper.instance.database;
+    final rows = await db.query('taxonomy_nodes');
+    final flat = rows.map(TaxonomyNode.fromMap).toList();
+    final map = {for (final n in flat) n.id: n};
+    final node = map[id];
+    if (node == null) return false;
+    if (node.parentId == newParentId) return true; // no-op
+
+    // Guard: cannot move a node into its own subtree
+    final descendants = <String>[];
+    _collectDescendants(flat, id, descendants);
+    if (newParentId != null && descendants.contains(newParentId)) {
+      return false;
+    }
+
+    List<String> pathTo(String? nid) {
+      final p = <String>[];
+      var cur = nid;
+      while (cur != null) {
+        final n = map[cur];
+        if (n == null) break;
+        p.insert(0, n.name);
+        cur = n.parentId;
+      }
+      return p;
+    }
+
+    final oldPath = pathTo(id);
+    final newPath = [...pathTo(newParentId), node.name];
+
+    await db.update('taxonomy_nodes', {'parent_id': newParentId},
+        where: 'id = ?', whereArgs: [id]);
+
+    // Rewrite item tags whose path starts with the old path
+    bool startsWith(List<String> tag, List<String> prefix) {
+      if (tag.length < prefix.length) return false;
+      for (var i = 0; i < prefix.length; i++) {
+        if (tag[i] != prefix[i]) return false;
+      }
+      return true;
+    }
+
+    final itemRows = await db.query('field_items');
+    for (final row in itemRows) {
+      final tags = (jsonDecode(row['tags'] as String) as List)
+          .map((e) => (e as List).map((s) => s as String).toList())
+          .toList();
+      bool changed = false;
+      final rewritten = tags.map((tp) {
+        if (startsWith(tp, oldPath)) {
+          changed = true;
+          return [...newPath, ...tp.sublist(oldPath.length)];
+        }
+        return tp;
+      }).toList();
+      if (changed) {
+        await db.update('field_items', {'tags': jsonEncode(rewritten)},
+            where: 'id = ?', whereArgs: [row['id']]);
+      }
+    }
+
+    await _load();
+    return true;
   }
 
   void _collectDescendants(

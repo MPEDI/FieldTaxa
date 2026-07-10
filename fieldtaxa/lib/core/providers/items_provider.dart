@@ -22,6 +22,12 @@ Future<String?> _persistFile(String? sourcePath, String itemId) async {
   return dest;
 }
 
+/// Removes duplicate tag paths (same full path listed twice).
+List<List<String>> _dedupeTags(List<List<String>> tags) {
+  final seen = <String>{};
+  return tags.where((t) => seen.add(t.join('/'))).toList();
+}
+
 class ItemsNotifier extends StateNotifier<List<FieldItem>> {
   ItemsNotifier() : super([]) {
     _load();
@@ -32,6 +38,10 @@ class ItemsNotifier extends StateNotifier<List<FieldItem>> {
     final rows = await db.query('field_items', orderBy: 'captured_at DESC');
     state = rows.map(FieldItem.fromMap).toList();
   }
+
+  /// Re-reads all items from the database (e.g. after a taxonomy move
+  /// rewrote tag paths).
+  Future<void> reload() => _load();
 
   Future<FieldItem> addItem({
     String? filePath,
@@ -55,7 +65,7 @@ class ItemsNotifier extends StateNotifier<List<FieldItem>> {
       type: type,
       source: source,
       capturedAt: capturedAt ?? DateTime.now(),
-      tags: tags,
+      tags: _dedupeTags(tags),
       lat: lat,
       lng: lng,
       isObsOnly: isObsOnly,
@@ -69,7 +79,7 @@ class ItemsNotifier extends StateNotifier<List<FieldItem>> {
 
   Future<void> updateTags(String id, List<List<String>> tags) async {
     final db = await DatabaseHelper.instance.database;
-    await db.update('field_items', {'tags': jsonEncode(tags)},
+    await db.update('field_items', {'tags': jsonEncode(_dedupeTags(tags))},
         where: 'id = ?', whereArgs: [id]);
     await _load();
   }

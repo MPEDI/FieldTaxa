@@ -123,26 +123,48 @@ class PhotoViewerScreen extends ConsumerWidget {
                               : Wrap(
                                   spacing: 6,
                                   runSpacing: 6,
-                                  children: item.tags
-                                      .expand((tp) => tp)
-                                      .map((tag) => Container(
-                                            padding:
-                                                const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                    vertical: 5),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.15),
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
+                                  // One chip per tag path, deduped, with the
+                                  // species (innermost rank) first and the
+                                  // higher-level ranks after it.
+                                  children: {
+                                    for (final tp in item.tags)
+                                      tp.join('/'): tp
+                                  }.values.map((tp) {
+                                    final reversed =
+                                        tp.reversed.toList();
+                                    return Container(
+                                      padding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.15),
+                                        borderRadius:
+                                            BorderRadius.circular(20),
+                                      ),
+                                      child: Text.rich(
+                                        TextSpan(
+                                          children: [
+                                            TextSpan(
+                                              text: reversed.first,
+                                              style: jakartaStyle(12,
+                                                  Colors.white,
+                                                  weight:
+                                                      FontWeight.w700),
                                             ),
-                                            child: Text(tag,
-                                                style: jakartaStyle(12,
-                                                    Colors.white,
-                                                    weight:
-                                                        FontWeight.w600)),
-                                          ))
-                                      .toList(),
+                                            if (reversed.length > 1)
+                                              TextSpan(
+                                                text:
+                                                    '  ·  ${reversed.skip(1).join(' › ')}',
+                                                style: jakartaStyle(11,
+                                                    Colors.white70),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
                         ),
                         const SizedBox(width: 8),
@@ -619,11 +641,11 @@ class _ReclassifySheetState extends ConsumerState<_ReclassifySheet> {
   void _onSpeciesChanged(String value) {
     _debounce?.cancel();
     if (value.trim().length < 3) {
-      if (_gbifSuggestions.isNotEmpty) {
-        setState(() => _gbifSuggestions = []);
-      }
+      // Rebuild so the "add directly" row follows the text
+      setState(() => _gbifSuggestions = []);
       return;
     }
+    setState(() {});
     _debounce = Timer(const Duration(milliseconds: 450), () async {
       final results = await GbifService.suggest(value);
       if (mounted) setState(() => _gbifSuggestions = results);
@@ -634,6 +656,20 @@ class _ReclassifySheetState extends ConsumerState<_ReclassifySheet> {
     final path = await ref
         .read(taxonomyProvider.notifier)
         .ensurePath(suggestion.path);
+    _addTag(path);
+    _speciesCtrl.clear();
+    setState(() => _gbifSuggestions = []);
+  }
+
+  /// Adds the typed name directly (no online lookup). The species is placed
+  /// under "Incertae sedis" and can later be moved to the right branch from
+  /// the Taxonomy screen.
+  Future<void> _addSpeciesDirectly() async {
+    final name = _speciesCtrl.text.trim();
+    if (name.isEmpty) return;
+    final path = await ref
+        .read(taxonomyProvider.notifier)
+        .ensurePath(['Incertae sedis', name]);
     _addTag(path);
     _speciesCtrl.clear();
     setState(() => _gbifSuggestions = []);
@@ -789,6 +825,8 @@ class _ReclassifySheetState extends ConsumerState<_ReclassifySheet> {
                                               Text(
                                                 s.path
                                                     .take(s.path.length - 1)
+                                                    .toList()
+                                                    .reversed
                                                     .join(' › '),
                                                 style: jakartaStyle(
                                                     11, context.appMuted),
@@ -806,6 +844,38 @@ class _ReclassifySheetState extends ConsumerState<_ReclassifySheet> {
                                 ),
                               ))
                           .toList(),
+                    ),
+                  ),
+                ],
+                // Direct add — no online lookup needed
+                if (_speciesCtrl.text.trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  InkWell(
+                    onTap: _addSpeciesDirectly,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 11),
+                      decoration: BoxDecoration(
+                        color: context.appTint,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.playlist_add_rounded,
+                              size: 18, color: context.appPrimary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Add "${_speciesCtrl.text.trim()}" directly (no search)',
+                              style: jakartaStyle(13, context.appPrimary,
+                                  weight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

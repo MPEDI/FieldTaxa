@@ -150,11 +150,11 @@ class _ClassifyScreenState extends ConsumerState<ClassifyScreen> {
   void _onSpeciesChanged(String value) {
     _debounce?.cancel();
     if (value.trim().length < 3) {
-      if (_gbifSuggestions.isNotEmpty) {
-        setState(() => _gbifSuggestions = []);
-      }
+      // Rebuild so the "add directly" row follows the text
+      setState(() => _gbifSuggestions = []);
       return;
     }
+    setState(() {});
     _debounce = Timer(const Duration(milliseconds: 450), () async {
       final results = await GbifService.suggest(value);
       if (mounted) setState(() => _gbifSuggestions = results);
@@ -165,6 +165,20 @@ class _ClassifyScreenState extends ConsumerState<ClassifyScreen> {
     final path = await ref
         .read(taxonomyProvider.notifier)
         .ensurePath(suggestion.path);
+    _addTag(path);
+    _speciesCtrl.clear();
+    setState(() => _gbifSuggestions = []);
+  }
+
+  /// Adds the typed name directly (no online lookup). The species is placed
+  /// under "Incertae sedis" and can later be moved to the right branch from
+  /// the Taxonomy screen.
+  Future<void> _addSpeciesDirectly() async {
+    final name = _speciesCtrl.text.trim();
+    if (name.isEmpty) return;
+    final path = await ref
+        .read(taxonomyProvider.notifier)
+        .ensurePath(['Incertae sedis', name]);
     _addTag(path);
     _speciesCtrl.clear();
     setState(() => _gbifSuggestions = []);
@@ -329,6 +343,8 @@ class _ClassifyScreenState extends ConsumerState<ClassifyScreen> {
                                         Text(
                                           s.path
                                               .take(s.path.length - 1)
+                                              .toList()
+                                              .reversed
                                               .join(' › '),
                                           style: jakartaStyle(
                                               11, context.appMuted),
@@ -344,6 +360,38 @@ class _ClassifyScreenState extends ConsumerState<ClassifyScreen> {
                           ),
                         ))
                     .toList(),
+              ),
+            ),
+          ],
+          // Direct add — no online lookup needed
+          if (_speciesCtrl.text.trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: _addSpeciesDirectly,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 11),
+                decoration: BoxDecoration(
+                  color: context.appTint,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.playlist_add_rounded,
+                        size: 18, color: context.appPrimary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Add "${_speciesCtrl.text.trim()}" directly (no search)',
+                        style: jakartaStyle(13, context.appPrimary,
+                            weight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

@@ -130,6 +130,10 @@ This works even for species not yet in your local tree — the entire hierarchy 
 
 > An internet connection is required for GBIF look-ups. The field has no effect offline.
 
+### Adding a Species Directly (No Search)
+
+As soon as you type anything in the species field, an **Add "…" directly (no search)** row appears below it. Tap it to add the typed name as-is — no internet needed. The species is placed under **Incertae sedis** ("of uncertain placement") in your taxonomy tree; you can later move it to the correct branch from the Taxonomy screen (see §10, *Moving a Category*).
+
 ### Adding Tags Manually
 
 Tags represent the taxonomy paths that describe your observation. A single item can have multiple tags (e.g. if you are unsure about the exact classification).
@@ -171,7 +175,7 @@ Tap any photo tile to open the full-screen Photo Viewer.
 ### What You See
 
 - **The photo** fills the screen (pinch to zoom, swipe to pan)
-- **Tag chips** at the bottom show the taxonomy paths assigned to this item
+- **Tag chips** at the bottom show the taxonomy paths assigned to this item — one chip per classification, with the **species name first** (bold) followed by the higher-level ranks in ascending order (e.g. *Carabus auratus · Carabidae › Coleoptera › Insecta › Animalia*). Duplicate classifications are shown only once.
 - **Coordinate row**: shows the recorded position (or "No position" if none). Tap the coordinate text to open the **Map Overlay**.
 - **Position button** (next to the coordinate row): tap **Position** to open the Edit Position sheet (see §6.1)
 - **Camera roll banner** (if the item was imported from the camera roll)
@@ -226,8 +230,9 @@ You can always change an item's taxonomy tags after the initial classify step.
 3. The **Edit classification** sheet slides up. It contains:
    - All current tag chips (tap **✕** on any chip to remove it)
    - A **Search species online (GBIF)** field — type at least 3 characters to look up species online and auto-populate the full taxonomy path as a tag (same as the Classify screen)
+   - An **Add "…" directly (no search)** row, shown as soon as you type — adds the typed name without any online lookup (placed under *Incertae sedis*)
    - **Browse tree / Find** tabs for selecting from your local taxonomy tree
-4. Add tags using the **+** buttons in Browse or Find mode, or via GBIF search.
+4. Add tags using the **+** buttons in Browse or Find mode, via GBIF search, or via direct add. Duplicate entries are removed automatically when you save.
 5. Tap **Save** to apply the changes, or **Cancel** to discard.
 
 The sheet is scrollable and opens at full height so the taxonomy tree is fully accessible.
@@ -284,6 +289,16 @@ Tap a **node name** to open the **Taxon Observations** screen (§10) for that no
 ### Adding a Child Category
 
 Tap the **+** button (small square, right side of a row) to add a new child category under that node. A dialog appears to enter the name. Tap **Add** to confirm.
+
+### Moving a Category (Rearranging the Tree)
+
+If a species or category was inserted in the wrong branch, you can move it:
+
+1. Tap the **move icon** (folder with arrow, right side of the row, between **+** and the trash icon).
+2. A sheet opens listing **Top level (root)** and every other category in the tree (indented to show hierarchy). The current parent is greyed out and marked *current*; a category can never be moved into its own subtree.
+3. Tap the destination. The category — including all its child categories — is re-parented immediately.
+
+**All observations tagged under the moved category are updated automatically**: their classification paths are rewritten to reflect the new position in the tree, so nothing gets lost or misfiled.
 
 ### Adding a Root-Level Category
 

@@ -149,6 +149,14 @@ class _TaxonNodeRowState extends ConsumerState<_TaxonNodeRow> {
                 onTap: () => _showAddDialog(context, node.id),
               ),
               const SizedBox(width: 4),
+              // Move button — re-parent the node (and subtree)
+              _TaxonAction(
+                icon: Icons.drive_file_move_outline,
+                bg: context.appSurface2,
+                iconColor: context.appMuted,
+                onTap: () => _showMoveSheet(context, node),
+              ),
+              const SizedBox(width: 4),
               // Delete button
               _TaxonAction(
                 icon: Icons.delete_outline_rounded,
@@ -209,6 +217,104 @@ class _TaxonNodeRowState extends ConsumerState<_TaxonNodeRow> {
     }
   }
 
+  /// Bottom sheet listing all valid destination parents. Selecting one
+  /// moves the node (and its subtree) there; all observation tags that
+  /// pass through the node are rewritten automatically.
+  Future<void> _showMoveSheet(BuildContext context, TaxonomyNode node) async {
+    final tree = ref.read(taxonomyProvider);
+
+    // Collect (node, depth) pairs, excluding the moved node and its subtree.
+    final destinations = <(TaxonomyNode, int)>[];
+    void walk(TaxonomyNode n, int depth) {
+      if (n.id == node.id) return; // skip self + entire subtree
+      destinations.add((n, depth));
+      for (final c in n.children) {
+        walk(c, depth + 1);
+      }
+    }
+
+    for (final root in tree) {
+      walk(root, 0);
+    }
+
+    final selected = await showModalBottomSheet<String?>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.92,
+        builder: (ctx, scrollCtrl) => Container(
+          decoration: BoxDecoration(
+            color: ctx.appSurface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(18)),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text('Move "${node.name}" to…',
+                          style: newsreaderStyle(18, ctx.appFg,
+                              weight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text('Cancel',
+                          style: jakartaStyle(13, ctx.appMuted)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 32),
+                  children: [
+                    // Top level option
+                    _MoveDestRow(
+                      label: 'Top level (root)',
+                      depth: 0,
+                      icon: Icons.home_outlined,
+                      enabled: node.parentId != null,
+                      onTap: () => Navigator.pop(ctx, '__root__'),
+                    ),
+                    ...destinations.map((d) => _MoveDestRow(
+                          label: d.$1.name,
+                          depth: d.$2 + 1,
+                          icon: Icons.subdirectory_arrow_right_rounded,
+                          enabled: d.$1.id != node.parentId,
+                          onTap: () => Navigator.pop(ctx, d.$1.id),
+                        )),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (selected == null || !context.mounted) return;
+    final newParentId = selected == '__root__' ? null : selected;
+    final ok = await ref
+        .read(taxonomyProvider.notifier)
+        .moveNode(node.id, newParentId);
+    // Observation tags were rewritten in the DB — refresh the items list.
+    await ref.read(itemsProvider.notifier).reload();
+    if (context.mounted && !ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Cannot move a category into its own subtree')),
+      );
+    }
+  }
+
   Future<void> _confirmDelete(BuildContext context, TaxonomyNode node) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -238,6 +344,52 @@ class _TaxonNodeRowState extends ConsumerState<_TaxonNodeRow> {
     if (ok == true) {
       await ref.read(taxonomyProvider.notifier).deleteNode(node.id);
     }
+  }
+}
+
+class _MoveDestRow extends StatelessWidget {
+  final String label;
+  final int depth;
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _MoveDestRow({
+    required this.label,
+    required this.depth,
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1 : 0.35,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: EdgeInsets.only(
+              left: depth * 18.0, top: 10, bottom: 10, right: 8),
+          child: Row(
+            children: [
+              Icon(icon, size: 16, color: context.appMuted),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(label,
+                    style: jakartaStyle(13.5, context.appFg,
+                        weight: FontWeight.w500),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              if (!enabled)
+                Text('current',
+                    style: jakartaStyle(11, context.appMuted)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
