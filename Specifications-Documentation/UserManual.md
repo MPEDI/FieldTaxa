@@ -118,21 +118,19 @@ The Classify screen appears after every capture or import. Here you assign taxon
 
 The image you captured or imported is shown as an 84×84 dp thumbnail on the left. For GPS-only observations, a map-pin placeholder is shown.
 
-### Searching Species Online (GBIF)
+### Entering a Species
 
-A **Search species online (GBIF)** field is shown above the Browse / Find tabs. Type at least 3 characters of a species name; after a short pause the app queries the [GBIF](https://www.gbif.org) biodiversity database and shows matching species with their taxonomy breadcrumb.
+A **Type a species name…** field is shown above the Browse / Find tabs. **Typing never contacts the internet** — nothing is searched automatically as you type.
 
-Tap any result to:
+You then have two ways to add the species:
+
+**1. Add directly (no search, works offline).** As soon as you type a name, an **Add "…" directly (no search)** row appears below the field. Tap it — or simply press **Return** on the keyboard — to add the typed name as-is. The species is placed under **Incertae sedis** ("of uncertain placement") in your taxonomy tree; you can later move it to the correct branch from the Taxonomy screen (see §10, *Moving a Category*).
+
+**2. Search online (GBIF), optional.** If you want the full scientific hierarchy filled in for you, tap the **globe icon** on the right of the field. Only then does the app query the [GBIF](https://www.gbif.org) biodiversity database and show matching species with their taxonomy breadcrumb. Tap any result to:
 1. Automatically create any missing taxonomy nodes (Kingdom → Phylum → Class → Order → Family → Genus → Species) in your local taxonomy tree.
 2. Add the full taxonomy path as a tag on the observation.
 
-This works even for species not yet in your local tree — the entire hierarchy is inserted automatically.
-
-> An internet connection is required for GBIF look-ups. The field has no effect offline.
-
-### Adding a Species Directly (No Search)
-
-As soon as you type anything in the species field, an **Add "…" directly (no search)** row appears below it. Tap it to add the typed name as-is — no internet needed. The species is placed under **Incertae sedis** ("of uncertain placement") in your taxonomy tree; you can later move it to the correct branch from the Taxonomy screen (see §10, *Moving a Category*).
+> An internet connection is required only for the GBIF globe-icon look-up. Everything else — including direct add — works fully offline.
 
 ### Adding Tags Manually
 
@@ -229,10 +227,9 @@ You can always change an item's taxonomy tags after the initial classify step.
 2. Tap the **Edit** button (top-right of the tag chips row).
 3. The **Edit classification** sheet slides up. It contains:
    - All current tag chips (tap **✕** on any chip to remove it)
-   - A **Search species online (GBIF)** field — type at least 3 characters to look up species online and auto-populate the full taxonomy path as a tag (same as the Classify screen)
-   - An **Add "…" directly (no search)** row, shown as soon as you type — adds the typed name without any online lookup (placed under *Incertae sedis*)
+   - A **Type a species name…** field — typing never searches online. Press **Return** or tap the **Add "…" directly** row to add the name offline (placed under *Incertae sedis*); or tap the **globe icon** to look the species up on GBIF and pull in its full taxonomy path
    - **Browse tree / Find** tabs for selecting from your local taxonomy tree
-4. Add tags using the **+** buttons in Browse or Find mode, via GBIF search, or via direct add. Duplicate entries are removed automatically when you save.
+4. Add tags using the **+** buttons in Browse or Find mode, via the GBIF globe icon, or via direct add. Duplicate entries are removed automatically when you save.
 5. Tap **Save** to apply the changes, or **Cancel** to discard.
 
 The sheet is scrollable and opens at full height so the taxonomy tree is fully accessible.

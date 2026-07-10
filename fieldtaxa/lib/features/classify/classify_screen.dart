@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,7 +45,6 @@ class _ClassifyScreenState extends ConsumerState<ClassifyScreen> {
   // GBIF species search
   final _speciesCtrl = TextEditingController();
   List<GbifSuggestion> _gbifSuggestions = [];
-  Timer? _debounce;
 
   @override
   void initState() {
@@ -62,7 +60,6 @@ class _ClassifyScreenState extends ConsumerState<ClassifyScreen> {
     _coord2Ctrl.dispose();
     _searchCtrl.dispose();
     _speciesCtrl.dispose();
-    _debounce?.cancel();
     super.dispose();
   }
 
@@ -147,18 +144,30 @@ class _ClassifyScreenState extends ConsumerState<ClassifyScreen> {
 
   // ─── GBIF ────────────────────────────────────────────────────────────────────
 
+  bool _gbifLoading = false;
+
+  // Typing never triggers an online lookup — it only refreshes the UI so the
+  // "add directly" row tracks the text. GBIF search happens only when the
+  // user taps the search button (_searchGbif).
   void _onSpeciesChanged(String value) {
-    _debounce?.cancel();
-    if (value.trim().length < 3) {
-      // Rebuild so the "add directly" row follows the text
-      setState(() => _gbifSuggestions = []);
-      return;
-    }
-    setState(() {});
-    _debounce = Timer(const Duration(milliseconds: 450), () async {
-      final results = await GbifService.suggest(value);
-      if (mounted) setState(() => _gbifSuggestions = results);
+    setState(() => _gbifSuggestions = []);
+  }
+
+  Future<void> _searchGbif() async {
+    final q = _speciesCtrl.text.trim();
+    if (q.length < 3) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _gbifLoading = true;
+      _gbifSuggestions = [];
     });
+    final results = await GbifService.suggest(q);
+    if (mounted) {
+      setState(() {
+        _gbifSuggestions = results;
+        _gbifLoading = false;
+      });
+    }
   }
 
   Future<void> _selectSpecies(GbifSuggestion suggestion) async {
@@ -293,15 +302,32 @@ class _ClassifyScreenState extends ConsumerState<ClassifyScreen> {
           ),
           const SizedBox(height: 16),
 
-          // ── GBIF species search ───────────────────────────────────────
+          // ── Species entry (direct add + optional online lookup) ───────
           TextField(
             controller: _speciesCtrl,
             onChanged: _onSpeciesChanged,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _addSpeciesDirectly(),
             decoration: InputDecoration(
-              hintText: 'Search species online (GBIF)…',
+              hintText: 'Type a species name…',
               hintStyle: jakartaStyle(13, context.appMuted),
               prefixIcon: Icon(Icons.science_outlined,
                   color: context.appMuted, size: 20),
+              suffixIcon: _gbifLoading
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child:
+                              CircularProgressIndicator(strokeWidth: 2)),
+                    )
+                  : IconButton(
+                      icon: Icon(Icons.travel_explore_rounded,
+                          color: context.appPrimary, size: 20),
+                      tooltip: 'Search online (GBIF)',
+                      onPressed: _searchGbif,
+                    ),
               filled: true,
               fillColor: context.appSurface2,
               border: OutlineInputBorder(
