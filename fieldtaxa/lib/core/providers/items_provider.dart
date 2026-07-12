@@ -9,17 +9,38 @@ import '../models/models.dart';
 
 const _uuid = Uuid();
 
+const _photosDirName = 'fieldtaxa_photos';
+
 /// Copies [sourcePath] into the app's permanent photos directory.
-/// Returns the new persistent path, or null if sourcePath is null.
+/// Returns the path RELATIVE to the documents directory (e.g.
+/// `fieldtaxa_photos/id.jpg`), or null if sourcePath is null.
+///
+/// Relative storage is essential on iOS: the app sandbox container gets a
+/// new UUID on every app update, so absolute paths stored in the database
+/// break after an upgrade even though the files themselves are preserved.
 Future<String?> _persistFile(String? sourcePath, String itemId) async {
   if (sourcePath == null) return null;
   final docsDir = await getApplicationDocumentsDirectory();
-  final photosDir = Directory(p.join(docsDir.path, 'fieldtaxa_photos'));
+  final photosDir = Directory(p.join(docsDir.path, _photosDirName));
   if (!photosDir.existsSync()) photosDir.createSync(recursive: true);
   final ext = p.extension(sourcePath).isNotEmpty ? p.extension(sourcePath) : '.jpg';
-  final dest = p.join(photosDir.path, '$itemId$ext');
-  await File(sourcePath).copy(dest);
-  return dest;
+  final fileName = '$itemId$ext';
+  await File(sourcePath).copy(p.join(photosDir.path, fileName));
+  return p.join(_photosDirName, fileName);
+}
+
+/// Resolves a stored file path to an absolute path in the CURRENT app
+/// container. Handles three cases:
+/// 1. Relative path (new format) → joined with the current docs dir.
+/// 2. Absolute path that still exists (same container) → returned as-is.
+/// 3. Stale absolute path from a previous container (pre-update install) →
+///    recovered by looking up the file's basename in the current photos dir.
+String _resolveFilePath(String docsPath, String stored) {
+  if (!p.isAbsolute(stored)) return p.join(docsPath, stored);
+  if (File(stored).existsSync()) return stored;
+  final candidate = p.join(docsPath, _photosDirName, p.basename(stored));
+  if (File(candidate).existsSync()) return candidate;
+  return stored;
 }
 
 /// Removes duplicate tag paths (same full path listed twice).
@@ -36,7 +57,14 @@ class ItemsNotifier extends StateNotifier<List<FieldItem>> {
   Future<void> _load() async {
     final db = await DatabaseHelper.instance.database;
     final rows = await db.query('field_items', orderBy: 'captured_at DESC');
-    state = rows.map(FieldItem.fromMap).toList();
+    final docsDir = await getApplicationDocumentsDirectory();
+    // Resolve stored paths (relative, or stale absolute from a previous app
+    // container) to absolute paths in the current container.
+    state = rows.map(FieldItem.fromMap).map((it) {
+      if (it.filePath == null) return it;
+      final resolved = _resolveFilePath(docsDir.path, it.filePath!);
+      return resolved == it.filePath ? it : it.copyWith(filePath: resolved);
+    }).toList();
   }
 
   /// Re-reads all items from the database (e.g. after a taxonomy move
