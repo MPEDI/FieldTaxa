@@ -19,6 +19,7 @@
 9. [Deleting Observations and Sightings](#9-deleting-observations-and-sightings)
 10. [Taxonomy Screen](#10-taxonomy-screen)
 11. [Taxon Observations](#11-taxon-observations)
+11a. [Distribution & Frequency](#11a-distribution--frequency)
 12. [Search](#12-search)
 13. [Map Overlay](#13-map-overlay)
 14. [Settings](#14-settings)
@@ -348,6 +349,45 @@ Each item appears as a card with:
 
 Tap **Add observation (no photo)** at the top to create a GPS-only item tagged to this node. The current timestamp and GPS position are recorded automatically.
 
+### Distribution & Frequency
+
+Tap the **chart icon** (📈, top-right of the Taxon Observations screen) to open the **Distribution** screen for that taxon — see §11a.
+
+---
+
+## 11a. Distribution & Frequency
+
+This screen shows **where** a taxon has been observed and **how often**. It covers the selected node and everything below it in the tree, so opening it on *Insecta* summarises every beetle, fly and mayfly beneath it.
+
+**Access:** Taxonomy → *[node name]* → the **chart icon** in the top-right.
+
+### Header
+
+Below the taxon name a summary line reads: total sightings · how many are georeferenced · how many distinct locations.
+
+### Geographic Distribution
+
+A map plots every georeferenced sighting. The view **automatically zooms and centres** to fit all points.
+
+- **Marker size reflects frequency** — sightings within about 11 m of each other are grouped into one circle, and the circle's area grows with the number of sightings there. Circles with more than one sighting show the count.
+- The badge in the section header shows which map source is in use — **Swisstopo** or **System maps** — following your choice in **Settings → Maps** (§14):
+  - **Swisstopo:** official Swiss national map tiles are drawn behind the markers (requires internet).
+  - **System maps:** a neutral grid is drawn instead of tiles. Marker positions use the same projection, so the spatial pattern remains accurate; tap **Open in maps** to view the area in Apple/Google Maps.
+- **Open in maps** opens the centre of the distribution in `map.geo.admin.ch` (Swisstopo) or the system maps app.
+
+If no sighting has a GPS position, the map area shows *No georeferenced sightings* instead.
+
+### Observation Frequency
+
+Two bar charts summarise when the taxon was seen. Each bar is labelled with its count; empty periods keep a thin baseline stub.
+
+| Chart | Meaning |
+|---|---|
+| **By month (all years)** | Sightings per calendar month (J–D), pooled across all years — reveals the seasonal pattern. The peak month is highlighted in the full accent colour. |
+| **By year** | Sightings per year, oldest to newest — reveals the recording trend. |
+
+> Frequency is based on **sightings**, not photos: each time you log an encounter (§7) it counts, so a single photographed individual seen five times contributes five records.
+
 ---
 
 ## 12. Search
@@ -448,12 +488,12 @@ Choose how GPS coordinates are displayed throughout the app:
 
 ### Maps
 
-Choose the map provider shown in the **Map Overlay**:
+Choose the map provider used by the **Map Overlay** (§13) and the **Distribution** screen (§11a):
 
 | Option | Description |
 |---|---|
-| **System maps** | Uses Apple Maps (iOS) or Google Maps (Android) |
-| **Swisstopo** | Displays official Swiss national map tiles (requires internet) |
+| **System maps** | Uses Apple Maps (iOS) or Google Maps (Android) when opening a location externally; the Distribution map draws markers on a neutral grid |
+| **Swisstopo** | Displays official Swiss national map tiles behind the markers (requires internet) |
 
 ---
 

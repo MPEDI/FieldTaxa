@@ -72,6 +72,13 @@ class TaxonObservationsScreen extends ConsumerWidget {
                 weight: FontWeight.w600)),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: Icon(Icons.insights_rounded,
+                size: 20, color: context.appPrimary),
+            tooltip: 'Distribution & frequency',
+            onPressed: () =>
+                context.push('/taxonomy/distribution/$nodeId'),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 14),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

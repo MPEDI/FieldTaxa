@@ -49,13 +49,19 @@ Map<String, double> lv95ToWgs(int e, int n) {
 }
 
 ({int x, int y}) latLngToTile(double lat, double lng, int zoom) {
-  final n = math.pow(2, zoom);
-  final x = ((lng + 180) / 360 * n).floor();
+  final t = latLngToTileXY(lat, lng, zoom);
+  return (x: t.x.floor(), y: t.y.floor());
+}
+
+/// Web-Mercator projection to *fractional* tile coordinates. Multiply by the
+/// tile size (256) to get world-pixel coordinates — needed to place markers
+/// at their exact position on a tile grid.
+({double x, double y}) latLngToTileXY(double lat, double lng, int zoom) {
+  final n = math.pow(2, zoom).toDouble();
+  final x = (lng + 180) / 360 * n;
   final latRad = lat * math.pi / 180;
-  final y = ((1 -
-              math.log(math.tan(latRad) + 1 / math.cos(latRad)) / math.pi) /
-          2 *
-          n)
-      .floor();
+  final y = (1 - math.log(math.tan(latRad) + 1 / math.cos(latRad)) / math.pi) /
+      2 *
+      n;
   return (x: x, y: y);
 }

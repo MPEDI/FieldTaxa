@@ -5,6 +5,7 @@ import '../../features/gallery/category_screen.dart';
 import '../../features/search/search_screen.dart';
 import '../../features/taxonomy/taxonomy_screen.dart';
 import '../../features/taxonomy/taxon_observations_screen.dart';
+import '../../features/distribution/distribution_screen.dart';
 import '../../features/capture/capture_screen.dart';
 import '../../features/classify/classify_screen.dart';
 import '../../features/viewer/photo_viewer_screen.dart';
@@ -41,6 +42,11 @@ final appRouter = GoRouter(
               s,
               TaxonObservationsScreen(
                   nodeId: s.pathParameters['nodeId']!)),
+        ),
+        GoRoute(
+          path: '/taxonomy/distribution/:nodeId',
+          pageBuilder: (c, s) => _fade(
+              s, DistributionScreen(nodeId: s.pathParameters['nodeId']!)),
         ),
         GoRoute(
           path: '/settings',
